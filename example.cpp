@@ -17,7 +17,7 @@ enum Enum {E1, E2};
 enum class Enumc {E1, E2};
 
 struct TestPack {
-	int value;
+    int value;
 };
 
 template<typename Archive>
@@ -51,7 +51,7 @@ struct DummyStorage {
 };
 
 void test_arch() {
-    archive::BinaryArchive<DummyStorage<1024>> Archive;
+    archive::BinaryArchive<DummyStorage<1024>> archive;
 
     int i = 1233124;
     double d = 123.1243;
@@ -65,28 +65,28 @@ void test_arch() {
         {101, "one"},
         {202, "two"},
     };
-	TestPack tp { 777 };
+    TestPack tp { 777 };
     std::tuple<TestPack, double> tup { {12}, 0.404};
-	std::array<int, 4> sarr {{1, 2, 3, 4}};
+    std::array<int, 4> sarr {{1, 2, 3, 4}};
     int arr[3] = {1,2,3};
     std::optional<int> opt = std::make_optional<int>(222);
     std::optional<int> opte;
 
-    Archive.serialize(i);
-    Archive.serialize(d);
-    Archive.serialize(c);
-    Archive.serialize(e);
-    Archive.serialize(ec);
-    Archive.serialize(str);
-    Archive.serialize(p);
-    Archive.serialize(vec);
-    Archive.serialize(map);
-    Archive.serialize(tp);
-    Archive.serialize(tup);
-    Archive.serialize(sarr);
-    Archive.serialize(arr);
-    Archive.serialize(opt);
-    Archive.serialize(opte);
+    archive.serialize(i);
+    archive.serialize(d);
+    archive.serialize(c);
+    archive.serialize(e);
+    archive.serialize(ec);
+    archive.serialize(str);
+    archive.serialize(p);
+    archive.serialize(vec);
+    archive.serialize(map);
+    archive.serialize(tp);
+    archive.serialize(tup);
+    archive.serialize(sarr);
+    archive.serialize(arr);
+    archive.serialize(opt);
+    archive.serialize(opte);
 
 
     int i1 = 0;
@@ -98,28 +98,28 @@ void test_arch() {
     std::pair<int, std::string> p1;
     std::vector<int> vec1;
     std::map<int, std::string> map1;
-	TestPack tp1;
+    TestPack tp1;
     std::tuple<TestPack, double> tup1;
     std::array<int, 4> sarr1 {};
     int arr1[3];
     std::optional<int> opt1;
     std::optional<int> opte1 = std::make_optional<int>(999);
 
-    Archive.deserialize(i1);
-    Archive.deserialize(d1);
-    Archive.deserialize(c1);
-    Archive.deserialize(e1);
-    Archive.deserialize(ec1);
-    Archive.deserialize(str1);
-    Archive.deserialize(p1);
-    Archive.deserialize(vec1);
-    Archive.deserialize(map1);
-    Archive.deserialize(tp1);
-    Archive.deserialize(tup1);
-    Archive.deserialize(sarr1);
-    Archive.deserialize(arr1);
-    Archive.deserialize(opt1);
-    Archive.deserialize(opte1);
+    archive.deserialize(i1);
+    archive.deserialize(d1);
+    archive.deserialize(c1);
+    archive.deserialize(e1);
+    archive.deserialize(ec1);
+    archive.deserialize(str1);
+    archive.deserialize(p1);
+    archive.deserialize(vec1);
+    archive.deserialize(map1);
+    archive.deserialize(tp1);
+    archive.deserialize(tup1);
+    archive.deserialize(sarr1);
+    archive.deserialize(arr1);
+    archive.deserialize(opt1);
+    archive.deserialize(opte1);
 
     std::cout << i1 << " " << d1 << " " << c1 << " " << e1 << "\n"
               << str1 << " {" << p1.first << " " << p.second << "} "
