@@ -18,6 +18,7 @@ enum class Enumc {E1, E2};
 
 struct TestPack {
     int value;
+    bool operator == (const TestPack& other) const { return value == other.value; }
 };
 
 template<typename Archive>
@@ -121,16 +122,24 @@ void test_arch() {
     archive.deserialize(opt1);
     archive.deserialize(opte1);
 
-    std::cout << i1 << " " << d1 << " " << c1 << " " << e1 << "\n"
-              << str1 << " {" << p1.first << " " << p.second << "} "
-              << "{" << tp1.value << "} \n("
-              << std::get<0>(tup1).value << " " << std::get<1>(tup1) << ")\n["
-              << sarr1[0] << " " << sarr1[1] << " " << sarr1[2] << " " << sarr1[3] << "] \n["
-              << arr1[0] << " " << arr1[1] << " " << arr1[2] << "] \n"
-              << opt1.value_or(-1) << " " << opte1.value_or(-1) << " \n"
-    ;
-    for (auto&& e: vec1) { std::cout << e << " "; } std::cout << " \n";
-    for (auto&& e: map1) { std::cout << e.first << ":" << e.second << " "; } std::cout << " \n";
+    assert(i == i1);
+    assert(d >= d1 && d <=d1); // silent float comparisong warning
+    assert(c == c1);
+    assert(e == e1);
+    assert(ec == ec1);
+    assert(str == str1);
+    assert(p == p1);
+    assert(vec == vec1);
+    assert(map == map1);
+    assert(tp == tp1);
+    assert(tup == tup1);
+    assert(sarr == sarr1);
+    assert(opt == opt1);
+    assert(opte == opte1);
+
+    assert(arr[0] == arr1[0]);
+    assert(arr[1] == arr1[1]);
+    assert(arr[2] == arr1[2]);
 }
 
 

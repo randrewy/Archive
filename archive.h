@@ -14,6 +14,7 @@ struct is_primitive {
             || std::is_floating_point<T>::value
             || std::is_enum<T>::value;
 };
+template<typename T> inline constexpr bool is_primitive_v = is_primitive<T>::value;
 
 
 /// Checks if given class looks like an stl container
@@ -35,6 +36,7 @@ struct is_container<
             decltype(std::declval<T>().cend())
         >
 > : public std::true_type {};
+template<typename T> inline constexpr bool is_container_v = is_container<T>::value;
 
 
 /// Checks if given class has dictionary-specific typedefs
@@ -49,6 +51,7 @@ struct is_key_value<
             typename T::mapped_type
         >
 > : public std::true_type {};
+template<typename T> inline constexpr bool is_key_value_v = is_key_value<T>::value;
 
 
 /// Get element type of container/array
@@ -103,6 +106,7 @@ struct has_insert_value<
         Container,
         std::void_t<decltype(std::declval<Container>().insert(std::declval<typename Container::value_type>()))>
 > : std::true_type {};
+template<typename T> inline constexpr bool has_insert_value_v = has_insert_value<T>::value;
 
 
 /// Checks container for `push_back(T)`
@@ -114,6 +118,7 @@ struct has_push_back<
         Container,
         std::void_t<decltype(std::declval<Container>().push_back(std::declval<typename Container::value_type>()))>
 > : std::true_type {};
+template<typename T> inline constexpr bool has_push_back_v = has_push_back<T>::value;
 
 
 /// Checks container for `insert_after(It, T)`
@@ -125,6 +130,7 @@ struct has_insert_after<
         Container,
         std::void_t<decltype(std::declval<Container>().insert_after(std::declval<Container>().begin(), std::declval<typename Container::value_type>()))>
 > : std::true_type {};
+template<typename T> inline constexpr bool has_insert_after_v = has_insert_after<T>::value;
 
 
 /// Checks container for `reserve(size_t)`
@@ -136,6 +142,7 @@ struct has_reserve<
         Container,
         std::void_t<decltype(std::declval<Container>().reserve(0))>
 > : std::true_type {};
+template<typename T> inline constexpr bool has_reserve_v = has_reserve<T>::value;
 
 
 /// Checks if `std::tuple_size<Type>` can be applyed to object
@@ -152,6 +159,7 @@ struct is_tuple_like<
 			decltype(std::get<0>(std::declval<Type>()))
 		>
 > : std::true_type {};
+template<typename T> inline constexpr bool is_tuple_like_v = is_tuple_like<T>::value;
 
 
 /// Checks if given class looks like an stl optional
@@ -171,10 +179,8 @@ struct is_optional<
             decltype(std::declval<const T>().value())
           >
 > : public std::true_type {};
+template<typename T> inline constexpr bool is_optional_v = is_optional<T>::value;
 
-
-template<typename T> inline constexpr bool is_primitive_v = is_primitive<T>::value;
-template<typename T> inline constexpr bool is_container_v = is_container<T>::value;
 } // namespace traits
 
 
@@ -188,17 +194,17 @@ namespace details {
 /// Generalized `insert(Container, Type)` function to handle all possible differences
 /// with STL collection interfaces
 template<typename Container, typename T>
-std::enable_if_t<traits::has_push_back<Container>::value> insert(Container& container, T&& t) {
+std::enable_if_t<traits::has_push_back_v<Container>> insert(Container& container, T&& t) {
     container.push_back(std::forward<T>(t));
 }
 
 template<typename Container, typename T>
-std::enable_if_t<traits::has_insert_value<Container>::value> insert(Container& container, T&& t) {
+std::enable_if_t<traits::has_insert_value_v<Container>> insert(Container& container, T&& t) {
     container.insert(std::forward<T>(t));
 }
 
 template<typename Container, typename T>
-std::enable_if_t<traits::has_insert_after<Container>::value> insert(Container& container, T&& t) {
+std::enable_if_t<traits::has_insert_after_v<Container>> insert(Container& container, T&& t) {
     container.insert_after(container.before_begin(), std::forward<T>(t));
 }
 
@@ -206,7 +212,7 @@ std::enable_if_t<traits::has_insert_after<Container>::value> insert(Container& c
 /// Generalized `reserve(Container, size_t)` function to either reserve elements
 /// or do nothing if given container cannot reserve space for elements
 template<typename Container>
-std::enable_if_t<traits::has_reserve<Container>::value> reserve_silent(Container& container, size_t size) {
+std::enable_if_t<traits::has_reserve_v<Container>> reserve_silent(Container& container, size_t size) {
     container.reserve(size);
 }
 
@@ -229,6 +235,7 @@ struct external_serialize_exists {
             decltype( serialize_object(std::declval<T&>(), std::declval<P&>()) )
     >::value;
 };
+template<typename T, typename P> inline constexpr bool external_serialize_exists_v = external_serialize_exists<T, P>::value;
 
 
 /// Fallback helper for external_deserialize_exists
@@ -243,7 +250,7 @@ struct external_deserialize_exists {
             decltype( deserialize_object(std::declval<T&>(), std::declval<P&>()) )
     >::value;
 };
-
+template<typename T, typename P> inline constexpr bool external_deserialize_exists_v = external_deserialize_exists<T, P>::value;
 
 
 template <size_t I, size_t N, typename Tuple, typename Function>
@@ -285,12 +292,12 @@ struct BinaryArchive : public StoragePolicy {
     /// ===== Serialize =====
 
     template<typename Primitive>
-    std::enable_if_t<traits::is_primitive<Primitive>::value, usize> serialize(const Primitive primitive) {
+    std::enable_if_t<traits::is_primitive_v<Primitive>, usize> serialize(const Primitive primitive) {
         return get_storage().write(reinterpret_cast<const char*>(&primitive), sizeof(Primitive));
     }
 
     template<typename Container>
-    std::enable_if_t<traits::is_container<Container>::value || std::is_array<Container>::value, usize> serialize(const Container& container) {
+    std::enable_if_t<traits::is_container_v<Container> || std::is_array<Container>::value, usize> serialize(const Container& container) {
         const size_t length = std::size(container);
         serialize<usize>(length);
         for (auto&& e: container) {
@@ -301,8 +308,8 @@ struct BinaryArchive : public StoragePolicy {
 
     template<typename Gettable>
     std::enable_if_t<
-			traits::is_tuple_like<Gettable>::value
-            && !traits::is_primitive<Gettable>::value
+            traits::is_tuple_like_v<Gettable>
+            && !traits::is_primitive_v<Gettable>
     , usize> serialize(const Gettable& object) {
         constexpr size_t N = std::tuple_size<Gettable>::value;
         usize size = 0;
@@ -313,12 +320,12 @@ struct BinaryArchive : public StoragePolicy {
     }
 
     template<typename Serializable>
-    std::enable_if_t<details::external_serialize_exists<Serializable, BinaryArchive<Storage, StoragePolicy>>::value, usize> serialize(const Serializable& object) {
+    std::enable_if_t<details::external_serialize_exists_v<Serializable, BinaryArchive<Storage, StoragePolicy>>, usize> serialize(const Serializable& object) {
         return serialize_object(object, *this);
     }
 
     template<typename Optional>
-    std::enable_if_t<traits::is_optional<Optional>::value, usize> serialize(const Optional& optional) {
+    std::enable_if_t<traits::is_optional_v<Optional>, usize> serialize(const Optional& optional) {
         usize size = serialize(optional.has_value());
         if (optional.has_value()) {
             size += serialize(*optional);
@@ -329,12 +336,12 @@ struct BinaryArchive : public StoragePolicy {
     /// ===== Deserialize =====
 
     template<typename Primitive>
-    std::enable_if_t<traits::is_primitive<Primitive>::value> deserialize(Primitive& primitive) {
+    std::enable_if_t<traits::is_primitive_v<Primitive>> deserialize(Primitive& primitive) {
         get_storage().read(reinterpret_cast<char*>(&primitive), sizeof(Primitive));
     }
 
     template<typename Container>
-    std::enable_if_t<traits::is_container<Container>::value> deserialize(Container& container) {
+    std::enable_if_t<traits::is_container_v<Container>> deserialize(Container& container) {
         usize size = 0;
         deserialize(size);
         details::reserve_silent(container, static_cast<size_t>(size));
@@ -348,8 +355,8 @@ struct BinaryArchive : public StoragePolicy {
 
     template<typename Gettable>
     std::enable_if_t<
-			traits::is_tuple_like<Gettable>::value
-            && !traits::is_primitive<Gettable>::value
+            traits::is_tuple_like_v<Gettable>
+            && !traits::is_primitive_v<Gettable>
     > deserialize(Gettable& object) {
         details::for_each_tuple_element<0, std::tuple_size<Gettable>::value>(object, [this] (auto&& element) {
             deserialize(element);
@@ -357,12 +364,12 @@ struct BinaryArchive : public StoragePolicy {
     }
 
     template<typename Deserializable>
-    std::enable_if_t<details::external_deserialize_exists<Deserializable, BinaryArchive<Storage, StoragePolicy>>::value> deserialize(Deserializable& object) {
+    std::enable_if_t<details::external_deserialize_exists_v<Deserializable, BinaryArchive<Storage, StoragePolicy>>> deserialize(Deserializable& object) {
         deserialize_object(object, *this);
     }
 
     template<typename Optional>
-    std::enable_if_t<traits::is_optional<Optional>::value> deserialize(Optional& optional) {
+    std::enable_if_t<traits::is_optional_v<Optional>> deserialize(Optional& optional) {
         bool has_value = false;
         deserialize(has_value);
 
