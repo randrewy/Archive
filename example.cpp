@@ -51,98 +51,146 @@ struct DummyStorage {
     }
 };
 
-void test_arch() {
-    archive::BinaryArchive<DummyStorage<1024>> archive;
+struct TestObject {
+    int i;
+    double d;
+    char c;
+    Enum e;
+    Enumc ec;
+    std::vector<int> vec;
+    std::string str;
+    std::pair<int, std::string> p;
+    std::map<int, std::string> map;
+    TestPack tp;
+    std::tuple<TestPack, double> tup;
+    std::array<int, 4> sarr;
+    int arr[3];
+    std::optional<int> opt;
+    std::optional<int> opte;
+};
 
-    int i = 1233124;
-    double d = 123.1243;
-    char c = 't';
-    Enum e = E2;
-    Enumc ec = Enumc::E2;
-    std::vector<int> vec {1, 5, 7, 9};
-    std::string str = "string";
-    std::pair<int, std::string> p {333, "second"};
-    std::map<int, std::string> map {
+TestObject makeTestObject() {
+    TestObject test;
+
+    test.i = 1233124;
+    test.d = 123.1243;
+    test.c = 't';
+    test.e = E2;
+    test.ec = Enumc::E2;
+    test.vec = {1, 5, 7, 9};
+    test.str = "string";
+    test.p = {333, "second"};
+    test.map = {
         {101, "one"},
         {202, "two"},
     };
-    TestPack tp { 777 };
-    std::tuple<TestPack, double> tup { {12}, 0.404};
-    std::array<int, 4> sarr {{1, 2, 3, 4}};
-    int arr[3] = {1,2,3};
-    std::optional<int> opt = std::make_optional<int>(222);
-    std::optional<int> opte;
+    test.tp = { 777 };
+    test.tup = { {12}, 0.404};
+    test.sarr = {{1, 2, 3, 4}};
+    test.arr[0] = 1;
+    test.arr[1] = 2;
+    test.arr[2] = 3;
+    test.opt = std::make_optional<int>(222);
 
-    archive.serialize(i);
-    archive.serialize(d);
-    archive.serialize(c);
-    archive.serialize(e);
-    archive.serialize(ec);
-    archive.serialize(str);
-    archive.serialize(p);
-    archive.serialize(vec);
-    archive.serialize(map);
-    archive.serialize(tp);
-    archive.serialize(tup);
-    archive.serialize(sarr);
-    archive.serialize(arr);
-    archive.serialize(opt);
-    archive.serialize(opte);
+    return test;
+}
+
+void assert_equal(const TestObject& test, const TestObject& result) {
+    assert(test.i == result.i);
+    assert(test.d >= result.d && test.d <= result.d); // silent float comparisong warning
+    assert(test.c == result.c);
+    assert(test.e == result.e);
+    assert(test.ec == result.ec);
+    assert(test.str == result.str);
+    assert(test.p == result.p);
+    assert(test.vec == result.vec);
+    assert(test.map == result.map);
+    assert(test.tp == result.tp);
+    assert(test.tup == result.tup);
+    assert(test.sarr == result.sarr);
+    assert(test.opt == result.opt);
+    assert(test.opte == result.opte);
+
+    assert(test.arr[0] == result.arr[0]);
+    assert(test.arr[1] == result.arr[1]);
+    assert(test.arr[2] == result.arr[2]);
+}
+
+void test_arch() {
+    archive::BinaryArchive<DummyStorage<1024>> archive;
+    TestObject test = makeTestObject();
+
+    archive.serialize(test.i);
+    archive.serialize(test.d);
+    archive.serialize(test.c);
+    archive.serialize(test.e);
+    archive.serialize(test.ec);
+    archive.serialize(test.str);
+    archive.serialize(test.p);
+    archive.serialize(test.vec);
+    archive.serialize(test.map);
+    archive.serialize(test.tp);
+    archive.serialize(test.tup);
+    archive.serialize(test.sarr);
+    archive.serialize(test.arr);
+    archive.serialize(test.opt);
+    archive.serialize(test.opte);
+
+    TestObject result;
+
+    archive.deserialize(result.i);
+    archive.deserialize(result.d);
+    archive.deserialize(result.c);
+    archive.deserialize(result.e);
+    archive.deserialize(result.ec);
+    archive.deserialize(result.str);
+    archive.deserialize(result.p);
+    archive.deserialize(result.vec);
+    archive.deserialize(result.map);
+    archive.deserialize(result.tp);
+    archive.deserialize(result.tup);
+    archive.deserialize(result.sarr);
+    archive.deserialize(result.arr);
+    archive.deserialize(result.opt);
+    archive.deserialize(result.opte);
+
+    assert_equal(test, makeTestObject());
+    assert_equal(test, result);
+}
 
 
-    int i1 = 0;
-    double d1 = 0;
-    char c1 = '0';
-    Enum e1;
-    Enumc ec1;
-    std::string str1;
-    std::pair<int, std::string> p1;
-    std::vector<int> vec1;
-    std::map<int, std::string> map1;
-    TestPack tp1;
-    std::tuple<TestPack, double> tup1;
-    std::array<int, 4> sarr1 {};
-    int arr1[3];
-    std::optional<int> opt1;
-    std::optional<int> opte1 = std::make_optional<int>(999);
+template<typename Archive, archive::ArchivingDirection policy>
+void stream_serialization (archive::ArchiveStream<Archive, policy>& stream, archive::ArgumentRef<TestObject, policy>& t) {
+    stream & t.i & t.d & t.c & t.e
+           & t.ec & t.vec & t.str & t.p
+           & t.map & t.tp & t.tup & t.sarr
+           & t.arr & t.opt & t.opte;
+}
 
-    archive.deserialize(i1);
-    archive.deserialize(d1);
-    archive.deserialize(c1);
-    archive.deserialize(e1);
-    archive.deserialize(ec1);
-    archive.deserialize(str1);
-    archive.deserialize(p1);
-    archive.deserialize(vec1);
-    archive.deserialize(map1);
-    archive.deserialize(tp1);
-    archive.deserialize(tup1);
-    archive.deserialize(sarr1);
-    archive.deserialize(arr1);
-    archive.deserialize(opt1);
-    archive.deserialize(opte1);
+void test_stream() {
+    using StorageType = DummyStorage<1024>;
+    using ArchiveType = archive::BinaryArchive<StorageType, archive::storage_policy::NotOwningPointer>;
+    StorageType storage;
 
-    assert(i == i1);
-    assert(d >= d1 && d <=d1); // silent float comparisong warning
-    assert(c == c1);
-    assert(e == e1);
-    assert(ec == ec1);
-    assert(str == str1);
-    assert(p == p1);
-    assert(vec == vec1);
-    assert(map == map1);
-    assert(tp == tp1);
-    assert(tup == tup1);
-    assert(sarr == sarr1);
-    assert(opt == opt1);
-    assert(opte == opte1);
 
-    assert(arr[0] == arr1[0]);
-    assert(arr[1] == arr1[1]);
-    assert(arr[2] == arr1[2]);
+    archive::stream::Writer<ArchiveType> writer(&storage);
+
+    TestObject test = makeTestObject();
+    writer & test;
+
+
+    archive::stream::Reader<ArchiveType> reader(&storage);
+
+    TestObject result;
+    reader & result;
+
+    assert_equal(test, makeTestObject());
+    assert_equal(test, result);
 }
 
 
 int main() {
     test_arch();
+    test_stream();
+    std::cout << "OK\n";
 }

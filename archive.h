@@ -253,6 +253,22 @@ struct external_deserialize_exists {
 template<typename T, typename P> inline constexpr bool external_deserialize_exists_v = external_deserialize_exists<T, P>::value;
 
 
+/// Fallback helper for external_stream_serialization_exists
+template<typename Stream, typename Argument>
+std::false_type stream_serialization(Stream, Argument, ...);
+
+/// Checks if there is a `stream_serialization` function to serialize given type
+/// using StreamArchive class `Stream`
+template<typename Stream, typename Argument>
+struct external_stream_serialization_exists {
+    static const bool value = !std::is_same<
+            std::false_type,
+            decltype( stream_serialization(std::declval<Stream&>(), std::declval<Argument&>()) )
+    >::value;
+};
+template<typename S, typename T> inline constexpr bool external_stream_serialization_exists_v = external_stream_serialization_exists<S, T>::value;
+
+
 template <size_t I, size_t N, typename Tuple, typename Function>
 constexpr void for_each_tuple_element(Tuple&& t, Function&& f) {
     if constexpr (I < N) {
@@ -269,25 +285,38 @@ constexpr void for_each_tuple_element(Tuple&& t, Function&& f) {
 /// Storage policies for Archive
 namespace storage_policy {
 
-template<typename Archive>
-struct Copy {
-    Archive archive;
-    Archive& get_storage() { return archive;}
+template<typename Storage>
+struct Inline {
+    Storage storage;
+    Storage& get_storage() { return storage;}
 };
 
-template<typename Archive>
+template<typename Storage>
 struct NotOwningPointer {
-    Archive* archive;
-    Archive& get_storage() { return *archive;}
+    NotOwningPointer(Storage* storage_)
+        : storage(storage_)
+    {}
+
+    Storage* storage;
+    Storage& get_storage() { return *storage;}
 };
 
 } // namespace storage_policy
 
 
 // TODO: contiguous primitive data deserialize optimization
-template<typename Storage, typename StoragePolicy = storage_policy::Copy<Storage> >
-struct BinaryArchive : public StoragePolicy {
-    using StoragePolicy::get_storage;
+/// BinaryArchive with `serialize(const T& t)` / `deserialize(T& t)` API
+/// to make custom type serializable add pair of functions:
+///    serialize_object(T object, BinaryArchive&);
+///    deserialize_object(T object, BinaryArchive&);
+template<typename Storage, template<typename S>class StoragePolicy = storage_policy::Inline>
+struct BinaryArchive : public StoragePolicy<Storage> {
+    using StoragePolicy<Storage>::get_storage;
+
+    template<typename... Args>
+    BinaryArchive(Args... args)
+        : StoragePolicy<Storage> (std::forward<Args>(args)...)
+    {}
 
     /// ===== Serialize =====
 
@@ -392,8 +421,59 @@ struct BinaryArchive : public StoragePolicy {
             deserialize(array[i]);
         }
     }
-
 };
+
+
+enum class ArchivingDirection {
+    Deserialize,
+    Serialize,
+};
+
+/// Helper to make maintain const-correctness while using single template function for both
+/// serialization and deserialization
+template<typename T, ArchivingDirection policy>
+using ArgumentRef = std::conditional_t<policy == ArchivingDirection::Deserialize, T&, const T&>;
+
+/// ArchiveStream with `archive & objects...` API
+/// to make custom type serializable add function:
+/// template<typename Archive, ArchivingDirection policy>
+/// void stream_serialization (ArchiveStream<Archive, policy>& stream, ArgumentRef<T, policy>& t) {
+///      stream & `members...`;
+/// }
+template<typename Archive, ArchivingDirection policy_>
+class ArchiveStream {
+public:
+    template<typename... Args>
+    ArchiveStream(Args... args)
+        : archive (std::forward<Args>(args)...)
+    {}
+
+    template<typename T>
+    ArchiveStream& operator & (T& t) {
+        static_assert (!(std::is_const_v<T> && policy == ArchivingDirection::Deserialize), "Cant Deserialize to a const object");
+        if constexpr (details::external_stream_serialization_exists_v<ArchiveStream, T>) {
+            stream_serialization(*this, t);
+        } else if constexpr (policy == ArchivingDirection::Deserialize) {
+            archive.deserialize(t);
+        } else {
+            archive.serialize(t);
+        }
+        return *this;
+    }
+
+    constexpr static const ArchivingDirection policy = policy_;
+protected:
+    Archive archive;
+};
+
+namespace stream {
+template<typename T>
+using Reader = ArchiveStream<T, ArchivingDirection::Deserialize>;
+
+template<typename T>
+using Writer = ArchiveStream<T, ArchivingDirection::Serialize>;
+} // namespace streams
+
 
 } // namespace archive
 
