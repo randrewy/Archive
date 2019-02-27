@@ -33,18 +33,18 @@ void deserialize_object(TestPack& t, Archive& a) {
 
 template<size_t buffer_size>
 struct DummyStorage {
-    char buffer[buffer_size];
+    unsigned char buffer[buffer_size];
     size_t read_pos = 0;
     size_t write_pos = 0;
 
-    size_t write(const char* data, size_t size) {
+    size_t write(const unsigned char* data, size_t size) {
         assert(write_pos + size < buffer_size);
         memcpy(&buffer[write_pos], data, size);
         write_pos += size;
         return size;
     }
 
-    void read(char* data, size_t size) {
+    void read(unsigned char* data, size_t size) {
         assert(read_pos + size < buffer_size);
         memcpy(data, &buffer[read_pos], size);
         read_pos += size;
@@ -52,21 +52,21 @@ struct DummyStorage {
 };
 
 struct TestObject {
-    int i;
-    double d;
-    char c;
-    Enum e;
-    Enumc ec;
-    std::vector<int> vec;
-    std::string str;
-    std::pair<int, std::string> p;
-    std::map<int, std::string> map;
-    TestPack tp;
-    std::tuple<TestPack, double> tup;
-    std::array<int, 4> sarr;
-    int arr[3];
-    std::optional<int> opt;
-    std::optional<int> opte;
+    int i {};
+    double d {};
+    char c {};
+    Enum e {};
+    Enumc ec {};
+    std::vector<int> vec {};
+    std::string str {};
+    std::pair<int, std::string> p{};
+    std::map<int, std::string> map {};
+    TestPack tp {};
+    std::tuple<TestPack, double> tup {};
+    std::array<int, 4> sarr {};
+    int arr[3] = {};
+    std::optional<int> opt {};
+    std::optional<int> opte {};
 };
 
 TestObject makeTestObject() {

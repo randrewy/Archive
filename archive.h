@@ -287,7 +287,7 @@ namespace storage_policy {
 
 template<typename Storage>
 struct Inline {
-    Storage storage;
+    Storage storage {};
     Storage& get_storage() { return storage;}
 };
 
@@ -322,7 +322,7 @@ struct BinaryArchive : public StoragePolicy<Storage> {
 
     template<typename Primitive>
     std::enable_if_t<traits::is_primitive_v<Primitive>, usize> serialize(const Primitive primitive) {
-        return get_storage().write(reinterpret_cast<const char*>(&primitive), sizeof(Primitive));
+        return get_storage().write(reinterpret_cast<const unsigned char*>(&primitive), sizeof(Primitive));
     }
 
     template<typename Container>
@@ -366,7 +366,7 @@ struct BinaryArchive : public StoragePolicy<Storage> {
 
     template<typename Primitive>
     std::enable_if_t<traits::is_primitive_v<Primitive>> deserialize(Primitive& primitive) {
-        get_storage().read(reinterpret_cast<char*>(&primitive), sizeof(Primitive));
+        get_storage().read(reinterpret_cast<unsigned char*>(&primitive), sizeof(Primitive));
     }
 
     template<typename Container>
