@@ -343,7 +343,7 @@ struct BinaryArchive : public StoragePolicy<Storage> {
         constexpr size_t N = std::tuple_size<Gettable>::value;
         usize size = 0;
         details::for_each_tuple_element<0, N>(object, [&size, this] (auto&& element) {
-            size += serialize(element);
+            size += this->serialize(element);
         });
         return size;
     }
@@ -388,7 +388,7 @@ struct BinaryArchive : public StoragePolicy<Storage> {
             && !traits::is_primitive_v<Gettable>
     > deserialize(Gettable& object) {
         details::for_each_tuple_element<0, std::tuple_size<Gettable>::value>(object, [this] (auto&& element) {
-            deserialize(element);
+            this->deserialize(element);
         });
     }
 
