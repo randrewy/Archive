@@ -118,7 +118,7 @@ void assert_equal(const TestObject& test, const TestObject& result) {
 
 void test_arch() {
     archive::BinaryArchive<DummyStorage<1024>> archive;
-    TestObject test = makeTestObject();
+    const TestObject test = makeTestObject();
 
     archive.serialize(test.i);
     archive.serialize(test.d);
@@ -159,7 +159,7 @@ void test_arch() {
 }
 
 
-template<typename Archive, archive::ArchivingDirection policy>
+template<typename Archive, archive::Direction policy>
 void stream_serialization (archive::ArchiveStream<Archive, policy>& stream, archive::ArgumentRef<TestObject, policy>& t) {
     stream & t.i & t.d & t.c & t.e
            & t.ec & t.vec & t.str & t.p
@@ -175,7 +175,7 @@ void test_stream() {
 
     archive::stream::Writer<ArchiveType> writer(&storage);
 
-    TestObject test = makeTestObject();
+    const TestObject test = makeTestObject();
     writer & test;
 
 
@@ -188,9 +188,23 @@ void test_stream() {
     assert_equal(test, result);
 }
 
+void test_directional() {
+    archive::ArchiveStream<archive::BinaryArchive<DummyStorage<1024>>, archive::Direction::Bidirectional> archive;
+
+    const TestObject test = makeTestObject();
+    TestObject result;
+
+    archive << test;
+    archive >> result;
+
+    assert_equal(test, makeTestObject());
+    assert_equal(test, result);
+}
+
 
 int main() {
     test_arch();
     test_stream();
+    test_directional();
     std::cout << "OK\n";
 }

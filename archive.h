@@ -424,15 +424,16 @@ struct BinaryArchive : public StoragePolicy<Storage> {
 };
 
 
-enum class ArchivingDirection {
+enum class Direction {
     Deserialize,
     Serialize,
+    Bidirectional,
 };
 
 /// Helper to make maintain const-correctness while using single template function for both
 /// serialization and deserialization
-template<typename T, ArchivingDirection policy>
-using ArgumentRef = std::conditional_t<policy == ArchivingDirection::Deserialize, T&, const T&>;
+template<typename T, Direction policy>
+using ArgumentRef = std::conditional_t<policy == Direction::Deserialize, T&, const T&>;
 
 /// ArchiveStream with `archive & objects...` API
 /// to make custom type serializable add function:
@@ -440,7 +441,7 @@ using ArgumentRef = std::conditional_t<policy == ArchivingDirection::Deserialize
 /// void stream_serialization (ArchiveStream<Archive, policy>& stream, ArgumentRef<T, policy>& t) {
 ///      stream & `members...`;
 /// }
-template<typename Archive, ArchivingDirection policy_>
+template<typename Archive, Direction policy>
 class ArchiveStream {
 public:
     template<typename... Args>
@@ -449,11 +450,39 @@ public:
     {}
 
     template<typename T>
+    ArchiveStream& operator >> (T& t) {
+        static_assert (policy != Direction::Serialize, "Invalid use of operator >> for Serialize Archive");
+
+        auto* this_deserializer = as<Direction::Deserialize>();
+        if constexpr (details::external_stream_serialization_exists_v<ArchiveStream, T>) {
+            stream_serialization(*this_deserializer, t);
+        } else {
+            this_deserializer->archive.deserialize(t);
+        }
+        return *this;
+    }
+
+    template<typename T>
+    ArchiveStream& operator << (T& t) {
+        static_assert (policy != Direction::Deserialize, "Invalid use of operator << for Deserialize Archive");
+
+        auto* this_serializer = as<Direction::Serialize>();
+        if constexpr (details::external_stream_serialization_exists_v<ArchiveStream, T>) {
+            stream_serialization(*this_serializer, t);
+        } else {
+            this_serializer->archive.serialize(t);
+        }
+        return *this;
+    }
+
+    template<typename T>
     ArchiveStream& operator & (T& t) {
-        static_assert (!(std::is_const_v<T> && policy == ArchivingDirection::Deserialize), "Cant Deserialize to a const object");
+        static_assert (policy != Direction::Bidirectional, "Invalid use of operator & for Bidirectional Archive");
+        static_assert (!(std::is_const_v<T> && policy == Direction::Deserialize), "Cant Deserialize to a const object");
+
         if constexpr (details::external_stream_serialization_exists_v<ArchiveStream, T>) {
             stream_serialization(*this, t);
-        } else if constexpr (policy == ArchivingDirection::Deserialize) {
+        } else if constexpr (policy == Direction::Deserialize) {
             archive.deserialize(t);
         } else {
             archive.serialize(t);
@@ -461,17 +490,27 @@ public:
         return *this;
     }
 
-    constexpr static const ArchivingDirection policy = policy_;
+    constexpr static Direction get_policy() { return policy; }
 protected:
     Archive archive;
+
+    /// allows to get a pointer to this type with another streaming `direction`
+    /// policy is only used to make static decisions, so it's 'safe' to make this cast
+    /// though it's ugly, it is a fast way to make directional operators `>>` and `<<`
+    /// work correctly with user defined stream_serialization for bidirectional types
+    /// (or may be a bidirectional notion is a mistake and this is unnecessary at all)
+    template<Direction newPolicy>
+    ArchiveStream<Archive, newPolicy>* as() {
+        return reinterpret_cast<ArchiveStream<Archive, newPolicy>*>(this);
+    }
 };
 
 namespace stream {
 template<typename T>
-using Reader = ArchiveStream<T, ArchivingDirection::Deserialize>;
+using Reader = ArchiveStream<T, Direction::Deserialize>;
 
 template<typename T>
-using Writer = ArchiveStream<T, ArchivingDirection::Serialize>;
+using Writer = ArchiveStream<T, Direction::Serialize>;
 } // namespace streams
 
 
