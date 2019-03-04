@@ -158,9 +158,14 @@ void test_arch() {
     assert_equal(test, result);
 }
 
-
-template<typename Archive, archive::Direction policy>
-void stream_serialization (archive::ArchiveStream<Archive, policy>& stream, archive::ArgumentRef<TestObject, policy>& t) {
+// both signatures are ok
+// ```
+//  template<typename Archive, archive::Direction policy>
+//  void stream_serialization (archive::ArchiveStream<Archive, policy>& stream, archive::ArgumentRef<TestObject, policy>& t)
+// ```
+// or
+template<typename Stream>
+void stream_serialization (Stream& stream, archive::ArgumentRef<TestObject, Stream::get_policy()>& t) {
     stream & t.i & t.d & t.c & t.e
            & t.ec & t.vec & t.str & t.p
            & t.map & t.tp & t.tup & t.sarr

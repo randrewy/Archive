@@ -219,12 +219,8 @@ std::enable_if_t<traits::has_reserve_v<Container>> reserve_silent(Container& con
 template<typename Container>
 void reserve_silent(Container&, ...) {}
 
-
-struct InvalidType{};
-
 /// Fallback helper for external_serialize_exists
-template<typename T, typename P>
-void serialize_object(T, P, ...);
+std::false_type serialize_object(...);
 
 /// Checks if there is a `serialize_object` function to serialize given type
 /// using Archive class `P`
@@ -239,14 +235,13 @@ template<typename T, typename P> inline constexpr bool external_serialize_exists
 
 
 /// Fallback helper for external_deserialize_exists
-template<typename T, typename P>
-InvalidType deserialize_object(T, P, ...);
+std::false_type deserialize_object(...);
 /// Checks if there is an `deserialize_object` function to deserialize given type
 /// using Archive class `P`
 template<typename T, typename P>
 struct external_deserialize_exists {
-    static const bool value = std::is_same<
-            void,
+    static const bool value = !std::is_same<
+            std::false_type,
             decltype( deserialize_object(std::declval<T&>(), std::declval<P&>()) )
     >::value;
 };
@@ -254,8 +249,7 @@ template<typename T, typename P> inline constexpr bool external_deserialize_exis
 
 
 /// Fallback helper for external_stream_serialization_exists
-template<typename Stream, typename Argument>
-std::false_type stream_serialization(Stream, Argument, ...);
+std::false_type stream_serialization(...);
 
 /// Checks if there is a `stream_serialization` function to serialize given type
 /// using StreamArchive class `Stream`
@@ -432,8 +426,9 @@ enum class Direction {
 
 /// Helper to make maintain const-correctness while using single template function for both
 /// serialization and deserialization
+/// * cast to int to avoid strange MVSC compilation error about enum class `operator ==`
 template<typename T, Direction policy>
-using ArgumentRef = std::conditional_t<policy == Direction::Deserialize, T&, const T&>;
+using ArgumentRef = std::conditional_t<int(policy) == int(Direction::Deserialize), T&, const T&>;
 
 /// ArchiveStream with `archive & objects...` API
 /// to make custom type serializable add function:
