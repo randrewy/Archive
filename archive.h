@@ -280,6 +280,11 @@ constexpr void for_each_tuple_element(Tuple&& t, Function&& f) {
 namespace storage_policy {
 
 template<typename Storage>
+struct Parent : public Storage {
+    Storage& get_storage() { return *static_cast<Storage*>(this);}
+};
+
+template<typename Storage>
 struct Inline {
     Storage storage {};
     Storage& get_storage() { return storage;}
@@ -303,7 +308,7 @@ struct NotOwningPointer {
 /// to make custom type serializable add pair of functions:
 ///    serialize_object(T object, BinaryArchive&);
 ///    deserialize_object(T object, BinaryArchive&);
-template<typename Storage, template<typename S>class StoragePolicy = storage_policy::Inline>
+template<typename Storage, template<typename S>class StoragePolicy = storage_policy::Parent>
 struct BinaryArchive : public StoragePolicy<Storage> {
     using StoragePolicy<Storage>::get_storage;
 
@@ -440,7 +445,7 @@ template<typename Archive, Direction policy>
 class ArchiveStream {
 public:
     template<typename... Args>
-    ArchiveStream(Args... args)
+    ArchiveStream(Args&&... args)
         : archive (std::forward<Args>(args)...)
     {}
 
@@ -486,6 +491,8 @@ public:
     }
 
     constexpr static Direction get_policy() { return policy; }
+
+    Archive& getArchive() { return archive; }
 protected:
     Archive archive;
 
@@ -498,6 +505,7 @@ protected:
     ArchiveStream<Archive, newPolicy>* as() {
         return reinterpret_cast<ArchiveStream<Archive, newPolicy>*>(this);
     }
+    friend class ArchiveStream<Archive, Direction::Bidirectional>;
 };
 
 namespace stream {
