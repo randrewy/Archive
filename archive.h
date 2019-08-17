@@ -5,7 +5,7 @@
 
 #define ARCHIVE_ASSERT(x)
 
-namespace traits {
+namespace archive::traits {
 
 /// Checks if type is builtin or enum but not a pointer
 template<typename T>
