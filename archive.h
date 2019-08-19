@@ -307,6 +307,10 @@ struct NotOwningPointer {
 
 
 // TODO: contiguous primitive data deserialize optimization
+///
+// TODO:? move all members to archive ns and rename as *_object, leave only template<T> members
+// calling *_object template, so that latter will be found via ADL.
+// this will enable behavoiur specializations for specific types
 /// BinaryArchive with `serialize(const T& t)` / `deserialize(T& t)` API
 /// to make custom type serializable add pair of functions:
 ///    serialize_object(T object, BinaryArchive&);
