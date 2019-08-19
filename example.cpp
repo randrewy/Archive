@@ -207,9 +207,25 @@ void test_directional() {
 }
 
 
+
+void test_empty() {
+    struct Empty {};
+    archive::BinaryArchive<DummyStorage<1024>> archive;
+
+    Empty e;
+    std::tuple<> t;
+
+    archive.serialize(e);
+    archive.serialize(t);
+    archive.deserialize(e);
+    archive.deserialize(t);
+    // compilation test
+}
+
 int main() {
     test_arch();
     test_stream();
     test_directional();
+    test_empty();
     std::cout << "OK\n";
 }

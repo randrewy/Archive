@@ -151,6 +151,9 @@ template<typename T> inline constexpr bool has_reserve_v = has_reserve<T>::value
 template<typename Type, typename = void>
 struct is_tuple_like: std::false_type {};
 
+template<>
+struct is_tuple_like<std::tuple<>, void>: std::false_type {};
+
 template<typename Type>
 struct is_tuple_like<
         Type,
@@ -319,6 +322,11 @@ struct BinaryArchive : public StoragePolicy<Storage> {
 
     /// ===== Serialize =====
 
+    template<typename Empty>
+    std::enable_if_t<std::is_empty_v<Empty>, usize> serialize(Empty) {
+        return 0;
+    }
+
     template<typename Primitive>
     std::enable_if_t<traits::is_primitive_v<Primitive>, usize> serialize(const Primitive primitive) {
         return get_storage().write(reinterpret_cast<const unsigned char*>(&primitive), sizeof(Primitive));
@@ -362,6 +370,9 @@ struct BinaryArchive : public StoragePolicy<Storage> {
     }
 
     /// ===== Deserialize =====
+
+    template<typename Empty>
+    std::enable_if_t<std::is_empty_v<Empty>> deserialize(Empty&) {}
 
     template<typename Primitive>
     std::enable_if_t<traits::is_primitive_v<Primitive>> deserialize(Primitive& primitive) {
