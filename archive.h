@@ -308,6 +308,10 @@ struct NotOwningPointer {
 
 // TODO: contiguous primitive data deserialize optimization
 ///
+// TODO: add endianness to read/wtite functions
+///
+// TODO:? add template overloads: `const auto v = a.deserialize<Type>()`
+///
 // TODO:? move all members to archive ns and rename as *_object, leave only template<T> members
 // calling *_object template, so that latter will be found via ADL.
 // this will enable behavoiur specializations for specific types
